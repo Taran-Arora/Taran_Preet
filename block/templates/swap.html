@@ -1,0 +1,163 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>BNB to USDT Swap</title>
+    <link rel="stylesheet" href="/css/stake.css">
+    <script src="https://cdn.jsdelivr.net/npm/web3@1.3.6/dist/web3.min.js"></script>
+    <style>
+        .modal {
+            display: none;
+            position: fixed;
+            z-index: 1;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            overflow: auto;
+            background-color: rgba(0, 0, 0, 0.4);
+            padding-top: 60px;
+        }
+        .modal-content {
+            background-color: #fefefe;
+            margin: 5% auto;
+            padding: 20px;
+            border: 1px solid #888;
+            width: 80%;
+        }
+        .close {
+            color: #aaa;
+            float: right;
+            font-size: 28px;
+            font-weight: bold;
+        }
+        .close:hover,
+        .close:focus {
+            color: black;
+            text-decoration: none;
+            cursor: pointer;
+        }
+    </style>
+</head>
+<body>
+    <input type="text" id="bnb-amount" placeholder="Enter BNB amount">
+    <button id="swap-button">Swap BNB to USDT</button>
+
+    <!-- Modal -->
+    <div id="confirmModal" class="modal">
+        <div class="modal-content">
+            <span class="close">&times;</span>
+            <p>Are you sure you want to swap BNB to USDT?</p>
+            <button id="confirm-button">Confirm Swap</button>
+        </div>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', async () => {
+            // Ensure web3 and MetaMask are available
+            if (typeof window.ethereum === 'undefined') {
+                alert("Please install MetaMask!");
+                return;
+            }
+
+            const web3 = new Web3(window.ethereum);
+            await window.ethereum.request({ method: 'eth_requestAccounts' });
+
+            const accounts = await web3.eth.getAccounts();
+            const userAccount = accounts[0];
+
+            const usdtAddress = '0x55d398326f99059ff775485246999027b3197955'; // USDT contract address
+            const pancakeRouterAddress = '0x10ED43C718714eb63d5aA57B78B54704E256024E'; // PancakeSwap Router address
+
+            const pancakeRouterABI = [
+                {
+                    "constant": false,
+                    "inputs": [
+                        { "name": "amountOutMin", "type": "uint256" },
+                        { "name": "path", "type": "address[]" },
+                        { "name": "to", "type": "address" },
+                        { "name": "deadline", "type": "uint256" }
+                    ],
+                    "name": "swapExactETHForTokens",
+                    "outputs": [{ "name": "amounts", "type": "uint256[]" }],
+                    "payable": true,
+                    "stateMutability": "payable",
+                    "type": "function"
+                },
+                {
+                    "constant": true,
+                    "inputs": [
+                        { "name": "amountIn", "type": "uint256" },
+                        { "name": "path", "type": "address[]" }
+                    ],
+                    "name": "getAmountsOut",
+                    "outputs": [{ "name": "amounts", "type": "uint256[]" }],
+                    "payable": false,
+                    "stateMutability": "view",
+                    "type": "function"
+                }
+            ];
+
+            const pancakeRouter = new web3.eth.Contract(pancakeRouterABI, pancakeRouterAddress);
+
+            // Modal functionality
+            const modal = document.getElementById("confirmModal");
+            const closeModal = document.querySelector(".close");
+            const confirmButton = document.getElementById("confirm-button");
+            const swapButton = document.getElementById("swap-button");
+
+            closeModal.onclick = () => {
+                modal.style.display = "none";
+            };
+
+            swapButton.onclick = () => {
+                const amount = document.getElementById("bnb-amount").value;
+                if (!amount || isNaN(amount)) {
+                    alert("Enter a valid BNB amount.");
+                    return;
+                }
+                modal.style.display = "block";
+            };
+
+            confirmButton.onclick = async () => {
+                const amount = document.getElementById("bnb-amount").value;
+                const amountInWei = web3.utils.toWei(amount, "ether");
+            
+                try {
+                    // Ensure the token path uses WBNB
+                    const wbnbAddress = web3.utils.toChecksumAddress("0xBB4CdB9CBd36B01bD1cBaEBF2De08d9173bc095c");
+                    const path = [wbnbAddress, usdtAddress]; // WBNB -> USDT
+            
+                    // Estimate USDT amount for the given BNB input
+                    const amountsOut = await pancakeRouter.methods.getAmountsOut(amountInWei, path).call();
+                    const amountOutMin = web3.utils.toHex(Math.floor(amountsOut[1] * 0.95)); // Round down to the nearest integer
+            
+                    // Set deadline to 20 minutes from now
+                    const deadline = Math.floor(Date.now() / 1000) + 60 * 20;
+            
+                    // Execute the swap
+                    await pancakeRouter.methods.swapExactETHForTokens(
+                        amountOutMin, // Minimum amount of USDT expected
+                        path,         // Conversion path
+                        userAccount,  // Recipient address
+                        deadline      // Transaction deadline
+                    ).send({
+                        from: userAccount,
+                        value: amountInWei, // Amount of BNB to swap
+                        gas: 300000         // Set a high enough gas limit
+                    });
+            
+                    alert("Swap successful!");
+                } catch (error) {
+                    console.error("Swap failed:", error);
+                    alert("Swap failed. Please check the console for details.");
+                }
+            
+                modal.style.display = "none";
+            };
+            
+        });
+    </script>
+</body>
+</html>

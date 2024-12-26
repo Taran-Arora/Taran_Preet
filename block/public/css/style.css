@@ -1,0 +1,51 @@
+body {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    height: 100vh;
+    background-color: #1e1e1e;
+    color: #fff;
+    font-family: Arial, sans-serif;
+}
+
+.chart-container {
+    position: relative;
+    width: 80%;
+    max-width: 600px;
+}
+
+.chart {
+    position: relative;
+    height: 300px;
+    border-left: 2px solid #fff;
+    border-bottom: 2px solid #fff;
+}
+
+.line {
+    position: absolute;
+    height: 100%;
+    width: 100%;
+    background: linear-gradient(45deg, transparent 50%, #00f 50%);
+    background-size: 14.1% 200%;
+    background-position: 0 0;
+}
+
+.point {
+    position: absolute;
+    width: 10px;
+    height: 10px;
+    background-color: #00f;
+    border-radius: 50%;
+    transform: translate(-50%, 50%);
+}
+
+.x-axis {
+    display: flex;
+    justify-content: space-between;
+    margin-top: 10px;
+}
+
+.x-axis span {
+    flex: 1;
+    text-align: center;
+}

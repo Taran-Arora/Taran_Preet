@@ -1,0 +1,667 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Token Staking</title>
+    <script src="https://cdn.jsdelivr.net/npm/web3@latest/dist/web3.min.js"></script>
+    <link rel="stylesheet" href="/css/stake.css">
+</head>
+
+<body>
+    <h1>Token Staking</h1>
+    <div>
+        <h2>Stake Tokens</h2>
+        <label for="tokenAddress">Token Address:</label>
+        <input type="text" id="tokenAddress" placeholder="Enter Token Contract Address">
+        <label for="amount">Amount:</label>
+        <input type="number" id="amount" placeholder="Enter Amount to Stake">
+        <button onclick="stakeTokens()">Stake</button>
+    </div>
+    <div>
+        <h2>Release Tokens</h2>
+        <label for="releaseTokenAddress">Token Address:</label>
+        <input type="text" id="releaseTokenAddress" placeholder="Enter Token Contract Address">
+        <button onclick="releaseTokens()">Release</button>
+    </div>
+
+    <script>
+        const stakingContractAddress = '0xDa35d16976Ee353808Ed1287613282a35Bbc440E';
+        const stakingAbi = [
+	{
+		"inputs": [
+			{
+				"internalType": "address",
+				"name": "stakingToken",
+				"type": "address"
+			},
+			{
+				"internalType": "address",
+				"name": "rewardToken",
+				"type": "address"
+			}
+		],
+		"stateMutability": "nonpayable",
+		"type": "constructor"
+	},
+	{
+		"anonymous": false,
+		"inputs": [
+			{
+				"indexed": true,
+				"internalType": "address",
+				"name": "user",
+				"type": "address"
+			},
+			{
+				"indexed": true,
+				"internalType": "uint256",
+				"name": "amount",
+				"type": "uint256"
+			}
+		],
+		"name": "RewardsClaimed",
+		"type": "event"
+	},
+	{
+		"anonymous": false,
+		"inputs": [
+			{
+				"indexed": true,
+				"internalType": "address",
+				"name": "user",
+				"type": "address"
+			},
+			{
+				"indexed": true,
+				"internalType": "uint256",
+				"name": "amount",
+				"type": "uint256"
+			}
+		],
+		"name": "Staked",
+		"type": "event"
+	},
+	{
+		"anonymous": false,
+		"inputs": [
+			{
+				"indexed": true,
+				"internalType": "address",
+				"name": "user",
+				"type": "address"
+			},
+			{
+				"indexed": true,
+				"internalType": "uint256",
+				"name": "amount",
+				"type": "uint256"
+			}
+		],
+		"name": "Withdrawn",
+		"type": "event"
+	},
+	{
+		"inputs": [],
+		"name": "REWARD_RATE",
+		"outputs": [
+			{
+				"internalType": "uint256",
+				"name": "",
+				"type": "uint256"
+			}
+		],
+		"stateMutability": "view",
+		"type": "function"
+	},
+	{
+		"inputs": [
+			{
+				"internalType": "address",
+				"name": "account",
+				"type": "address"
+			}
+		],
+		"name": "earned",
+		"outputs": [
+			{
+				"internalType": "uint256",
+				"name": "",
+				"type": "uint256"
+			}
+		],
+		"stateMutability": "view",
+		"type": "function"
+	},
+	{
+		"inputs": [],
+		"name": "getReward",
+		"outputs": [],
+		"stateMutability": "nonpayable",
+		"type": "function"
+	},
+	{
+		"inputs": [],
+		"name": "lastUpdateTime",
+		"outputs": [
+			{
+				"internalType": "uint256",
+				"name": "",
+				"type": "uint256"
+			}
+		],
+		"stateMutability": "view",
+		"type": "function"
+	},
+	{
+		"inputs": [],
+		"name": "rewardPerToken",
+		"outputs": [
+			{
+				"internalType": "uint256",
+				"name": "",
+				"type": "uint256"
+			}
+		],
+		"stateMutability": "view",
+		"type": "function"
+	},
+	{
+		"inputs": [],
+		"name": "rewardPerTokenStored",
+		"outputs": [
+			{
+				"internalType": "uint256",
+				"name": "",
+				"type": "uint256"
+			}
+		],
+		"stateMutability": "view",
+		"type": "function"
+	},
+	{
+		"inputs": [
+			{
+				"internalType": "address",
+				"name": "",
+				"type": "address"
+			}
+		],
+		"name": "rewards",
+		"outputs": [
+			{
+				"internalType": "uint256",
+				"name": "",
+				"type": "uint256"
+			}
+		],
+		"stateMutability": "view",
+		"type": "function"
+	},
+	{
+		"inputs": [],
+		"name": "s_rewardToken",
+		"outputs": [
+			{
+				"internalType": "contract IERC20",
+				"name": "",
+				"type": "address"
+			}
+		],
+		"stateMutability": "view",
+		"type": "function"
+	},
+	{
+		"inputs": [],
+		"name": "s_stakingToken",
+		"outputs": [
+			{
+				"internalType": "contract IERC20",
+				"name": "",
+				"type": "address"
+			}
+		],
+		"stateMutability": "view",
+		"type": "function"
+	},
+	{
+		"inputs": [
+			{
+				"internalType": "uint256",
+				"name": "amount",
+				"type": "uint256"
+			}
+		],
+		"name": "stake",
+		"outputs": [],
+		"stateMutability": "nonpayable",
+		"type": "function"
+	},
+	{
+		"inputs": [
+			{
+				"internalType": "address",
+				"name": "",
+				"type": "address"
+			}
+		],
+		"name": "stakedBalance",
+		"outputs": [
+			{
+				"internalType": "uint256",
+				"name": "",
+				"type": "uint256"
+			}
+		],
+		"stateMutability": "view",
+		"type": "function"
+	},
+	{
+		"inputs": [
+			{
+				"internalType": "address",
+				"name": "",
+				"type": "address"
+			}
+		],
+		"name": "userRewardPerTokenPaid",
+		"outputs": [
+			{
+				"internalType": "uint256",
+				"name": "",
+				"type": "uint256"
+			}
+		],
+		"stateMutability": "view",
+		"type": "function"
+	},
+	{
+		"inputs": [
+			{
+				"internalType": "uint256",
+				"name": "amount",
+				"type": "uint256"
+			}
+		],
+		"name": "withdraw",
+		"outputs": [],
+		"stateMutability": "nonpayable",
+		"type": "function"
+	}
+];
+
+        let web3;
+        let stakingContract;
+        let userAccount;
+
+        window.addEventListener('load', async () => {
+            if (window.ethereum) {
+                web3 = new Web3(window.ethereum);
+                try {
+                    await window.ethereum.request({ method: 'eth_requestAccounts' });
+                    const accounts = await web3.eth.getAccounts();
+                    userAccount = accounts[0];
+                    stakingContract = new web3.eth.Contract(stakingAbi, stakingContractAddress);
+                } catch (error) {
+                    console.error("User denied account access");
+                }
+            } else {
+                console.log('Non-Ethereum browser detected. You should consider trying MetaMask!');
+            }
+        });
+
+        async function stakeTokens() {
+            const tokenAddress = document.getElementById('tokenAddress').value;
+            const amount = document.getElementById('amount').value;
+            if (!tokenAddress || !amount) {
+                alert("Please fill in all fields");
+                return;
+            }
+
+            const tokenContract = new web3.eth.Contract(erc20Abi, tokenAddress);
+
+            try {
+                const amountInWei = web3.utils.toWei(amount, 'ether');
+
+                // Approve the staking contract to spend tokens
+                await tokenContract.methods.approve(stakingContractAddress, amountInWei).send({ from: userAccount });
+
+                // Stake the tokens
+                await stakingContract.methods.stake(tokenAddress, amountInWei).send({ from: userAccount });
+
+                alert('Tokens staked successfully!');
+            } catch (error) {
+                console.error(error);
+                alert('An error occurred while staking tokens');
+            }
+        }
+        async function releaseTokens() {
+            const tokenAddress = document.getElementById('releaseTokenAddress').value;
+            if (!tokenAddress) {
+                alert("Please fill in the token address");
+                return;
+            }
+
+            try {
+                // Release the staked tokens
+                await stakingContract.methods.release(tokenAddress).send({ from: userAccount });
+
+                alert('Tokens released successfully!');
+            } catch (error) {
+                console.error(error);
+                alert('An error occurred while releasing tokens');
+            }
+        }
+
+        const erc20Abi = [
+            {
+                "constant": true,
+                "inputs": [],
+                "name": "name",
+                "outputs": [
+                    {
+                        "name": "",
+                        "type": "string"
+                    }
+                ],
+                "payable": false,
+                "stateMutability": "view",
+                "type": "function"
+            },
+            {
+                "constant": false,
+                "inputs": [
+                    {
+                        "name": "_spender",
+                        "type": "address"
+                    },
+                    {
+                        "name": "_value",
+                        "type": "uint256"
+                    }
+                ],
+                "name": "approve",
+                "outputs": [
+                    {
+                        "name": "",
+                        "type": "bool"
+                    }
+                ],
+                "payable": false,
+                "stateMutability": "nonpayable",
+                "type": "function"
+            },
+            {
+                "constant": true,
+                "inputs": [],
+                "name": "totalSupply",
+                "outputs": [
+                    {
+                        "name": "",
+                        "type": "uint256"
+                    }
+                ],
+                "payable": false,
+                "stateMutability": "view",
+                "type": "function"
+            },
+            {
+                "constant": false,
+                "inputs": [
+                    {
+                        "name": "_from",
+                        "type": "address"
+                    },
+                    {
+                        "name": "_to",
+                        "type": "address"
+                    },
+                    {
+                        "name": "_value",
+                        "type": "uint256"
+                    }
+                ],
+                "name": "transferFrom",
+                "outputs": [
+                    {
+                        "name": "",
+                        "type": "bool"
+                    }
+                ],
+                "payable": false,
+                "stateMutability": "nonpayable",
+                "type": "function"
+            },
+            {
+                "constant": true,
+                "inputs": [],
+                "name": "decimals",
+                "outputs": [
+                    {
+                        "name": "",
+                        "type": "uint8"
+                    }
+                ],
+                "payable": false,
+                "stateMutability": "view",
+                "type": "function"
+            },
+            {
+                "constant": true,
+                "inputs": [],
+                "name": "version",
+                "outputs": [
+                    {
+                        "name": "",
+                        "type": "string"
+                    }
+                ],
+                "payable": false,
+                "stateMutability": "view",
+                "type": "function"
+            },
+            {
+                "constant": true,
+                "inputs": [
+                    {
+                        "name": "_owner",
+                        "type": "address"
+                    }
+                ],
+                "name": "balanceOf",
+                "outputs": [
+                    {
+                        "name": "balance",
+                        "type": "uint256"
+                    }
+                ],
+                "payable": false,
+                "stateMutability": "view",
+                "type": "function"
+            },
+            {
+                "constant": true,
+                "inputs": [],
+                "name": "symbol",
+                "outputs": [
+                    {
+                        "name": "",
+                        "type": "string"
+                    }
+                ],
+                "payable": false,
+                "stateMutability": "view",
+                "type": "function"
+            },
+            {
+                "constant": false,
+                "inputs": [
+                    {
+                        "name": "_to",
+                        "type": "address"
+                    },
+                    {
+                        "name": "_value",
+                        "type": "uint256"
+                    }
+                ],
+                "name": "transfer",
+                "outputs": [
+                    {
+                        "name": "",
+                        "type": "bool"
+                    }
+                ],
+                "payable": false,
+                "stateMutability": "nonpayable",
+                "type": "function"
+            },
+            {
+                "constant": true,
+                "inputs": [],
+                "name": "standard",
+                "outputs": [
+                    {
+                        "name": "",
+                        "type": "string"
+                    }
+                ],
+                "payable": false,
+                "stateMutability": "view",
+                "type": "function"
+            },
+            {
+                "constant": false,
+                "inputs": [
+                    {
+                        "name": "_spender",
+                        "type": "address"
+                    },
+                    {
+                        "name": "_value",
+                        "type": "uint256"
+                    },
+                    {
+                        "name": "_extraData",
+                        "type": "bytes"
+                    }
+                ],
+                "name": "approveAndCall",
+                "outputs": [
+                    {
+                        "name": "success",
+                        "type": "bool"
+                    }
+                ],
+                "payable": false,
+                "stateMutability": "nonpayable",
+                "type": "function"
+            },
+            {
+                "constant": true,
+                "inputs": [],
+                "name": "fundingGoal",
+                "outputs": [
+                    {
+                        "name": "",
+                        "type": "uint256"
+                    }
+                ],
+                "payable": false,
+                "stateMutability": "view",
+                "type": "function"
+            },
+            {
+                "constant": true,
+                "inputs": [],
+                "name": "ICOdeadline",
+                "outputs": [
+                    {
+                        "name": "",
+                        "type": "uint256"
+                    }
+                ],
+                "payable": false,
+                "stateMutability": "view",
+                "type": "function"
+            },
+            {
+                "inputs": [
+                    {
+                        "name": "_tokenName",
+                        "type": "string"
+                    },
+                    {
+                        "name": "_tokenSymbol",
+                        "type": "string"
+                    },
+                    {
+                        "name": "_decimalUnits",
+                        "type": "uint8"
+                    },
+                    {
+                        "name": "_initialAmount",
+                        "type": "uint256"
+                    }
+                ],
+                "payable": false,
+                "stateMutability": "nonpayable",
+                "type": "constructor"
+            },
+            {
+                "payable": false,
+                "stateMutability": "nonpayable",
+                "type": "fallback"
+            },
+            {
+                "anonymous": false,
+                "inputs": [
+                    {
+                        "indexed": true,
+                        "name": "_from",
+                        "type": "address"
+                    },
+                    {
+                        "indexed": true,
+                        "name": "_to",
+                        "type": "address"
+                    },
+                    {
+                        "indexed": false,
+                        "name": "_value",
+                        "type": "uint256"
+                    }
+                ],
+                "name": "Transfer",
+                "type": "event"
+            },
+            {
+                "anonymous": false,
+                "inputs": [
+                    {
+                        "indexed": true,
+                        "name": "_owner",
+                        "type": "address"
+                    },
+                    {
+                        "indexed": true,
+                        "name": "_spender",
+                        "type": "address"
+                    },
+                    {
+                        "indexed": false,
+                        "name": "_value",
+                        "type": "uint256"
+                    }
+                ],
+                "name": "Approval",
+                "type": "event"
+            }
+        ];
+
+
+    </script>
+</body>
+
+</html>

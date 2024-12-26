@@ -1,0 +1,106 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Document</title>
+  <link rel="stylesheet" href="/css/login.css" />
+  <link
+    href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css"
+    rel="stylesheet"
+  />
+  <link
+    rel="stylesheet"
+    href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/all.min.css"
+    integrity="sha512-z3gLpd7yknf1YoNbCzqRKc4qyor8gaKU1qmn+CShxbuBusANI9QpRohGBreCFkKxLhei6S9CQXFEbbKuqLg0DA=="
+    crossorigin="anonymous"
+    referrerpolicy="no-referrer"
+  />
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/toastr.js/latest/toastr.min.css" />
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+</head>
+<body>
+  <section class="body-section">
+    <div class="container">
+      <div class="row">
+        <div class="col-lg-12">
+          <div class="login-section">
+            <div class="login-start">
+              <div class="log-heading">
+                <h2>Login</h2>
+              </div>
+              <form id="login-form">
+                <div class="form-details">
+                  <input
+                    id="ethereum-address"
+                    type="text"
+                    class="form-control"
+                    placeholder="Ethereum Address"
+                    onclick="connectMetamask()"
+                  />
+                </div>
+                <button type="submit" class="btn btn-primary mt-3">Login</button>
+              </form>
+              <div class="form-para mt-3">
+                <a href="/register" class="signup">Sign Up</a>
+                <a href="./Forgot.html" class="forgot">Forgot Password</a>
+              </div>  
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <script src="//cdnjs.cloudflare.com/ajax/libs/jquery/2.2.2/jquery.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/toastr.js/latest/toastr.min.js"></script>
+  <script>
+    async function connectMetamask() {
+      try {
+        if (typeof window.ethereum !== 'undefined') {
+          const accounts = await ethereum.request({ method: 'eth_requestAccounts' });
+          if (accounts.length > 0) {
+            const address = accounts[0];
+            document.getElementById('ethereum-address').value = address;
+            toastr.success('Connected with address: ' + address);
+          } else {
+            toastr.error('No accounts found');
+          }
+        } else {
+          toastr.error('MetaMask not detected. Please install MetaMask and try again.');
+        }
+      } catch (error) {
+        console.error(error);
+        toastr.error('An error occurred while connecting to MetaMask.');
+      }
+    }
+
+    document.getElementById('login-form').addEventListener('submit', function (e) {
+      e.preventDefault();
+      const address = document.getElementById('ethereum-address').value;
+      if (address) {
+        $.ajax({
+          url: '/api/login',
+          method: 'POST',
+          contentType: 'application/json',
+          data: JSON.stringify({ address: address }),
+          success: function (response) {
+            console.log('address', address);
+            localStorage.setItem('userwalletAddress', address);
+            toastr.success('Login successful!');
+            window.location.href = '/home';
+            // Handle successful login here
+          },
+          error: function (xhr, status, error) {
+            console.error('Login failed:', error);
+            toastr.error('Login failed: ' + error);
+            // Handle login error here
+          }
+        });
+      } else {
+        toastr.error('Ethereum address is required');
+      }
+    });
+  </script>
+</body>
+</html>

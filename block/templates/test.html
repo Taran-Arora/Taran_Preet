@@ -1,0 +1,285 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Swap</title>
+    <link rel="stylesheet" href="/css/swap.css">
+</head>
+
+<body>
+    <div class="container">
+        <h1>Swap</h1>
+        <p>Trade tokens in an instant</p>
+        <div class="swap-box">
+            <div class="token-box">
+                <span class="token-symbol">USDT</span>
+                <input type="number" id="usdt-amount" placeholder="0.0">
+                <div class="balance">Balance: <span id="usdt-balance">0.0</span></div>
+            </div>
+            <button id="swap-tokens">Swap</button>
+            <div class="token-box">
+                <span class="token-symbol">BNB</span>
+                <input type="number" id="bnb-amount" placeholder="0.0" disabled>
+                <div class="balance">Balance: <span id="bnb-balance">0.0</span></div>
+            </div>
+            <button type="button" onclick="logout()">Logout</button>
+        </div>
+    </div>
+    <div id="toast"></div>
+    <script src="https://cdn.jsdelivr.net/npm/web3@latest/dist/web3.min.js"></script>
+    <script>
+        async function logout() {
+            localStorage.clear();
+            window.location.href = '/';
+        }
+
+        document.addEventListener('DOMContentLoaded', async () => {
+            console.log("DOM fully loaded and parsed.");
+            const usdtAmount = document.getElementById('usdt-amount');
+            const bnbAmount = document.getElementById('bnb-amount');
+            const swapTokensButton = document.getElementById('swap-tokens');
+            const toast = document.getElementById('toast');
+            const usdtAbi = [{ "inputs": [], "payable": false, "stateMutability": "nonpayable", "type": "constructor" }, { "anonymous": false, "inputs": [{ "indexed": true, "internalType": "address", "name": "owner", "type": "address" }, { "indexed": true, "internalType": "address", "name": "spender", "type": "address" }, { "indexed": false, "internalType": "uint256", "name": "value", "type": "uint256" }], "name": "Approval", "type": "event" }, { "anonymous": false, "inputs": [{ "indexed": true, "internalType": "address", "name": "previousOwner", "type": "address" }, { "indexed": true, "internalType": "address", "name": "newOwner", "type": "address" }], "name": "OwnershipTransferred", "type": "event" }, { "anonymous": false, "inputs": [{ "indexed": true, "internalType": "address", "name": "from", "type": "address" }, { "indexed": true, "internalType": "address", "name": "to", "type": "address" }, { "indexed": false, "internalType": "uint256", "name": "value", "type": "uint256" }], "name": "Transfer", "type": "event" }, { "constant": true, "inputs": [], "name": "_decimals", "outputs": [{ "internalType": "uint8", "name": "", "type": "uint8" }], "payable": false, "stateMutability": "view", "type": "function" }, { "constant": true, "inputs": [], "name": "_name", "outputs": [{ "internalType": "string", "name": "", "type": "string" }], "payable": false, "stateMutability": "view", "type": "function" }, { "constant": true, "inputs": [], "name": "_symbol", "outputs": [{ "internalType": "string", "name": "", "type": "string" }], "payable": false, "stateMutability": "view", "type": "function" }, { "constant": true, "inputs": [{ "internalType": "address", "name": "owner", "type": "address" }, { "internalType": "address", "name": "spender", "type": "address" }], "name": "allowance", "outputs": [{ "internalType": "uint256", "name": "", "type": "uint256" }], "payable": false, "stateMutability": "view", "type": "function" }, { "constant": false, "inputs": [{ "internalType": "address", "name": "spender", "type": "address" }, { "internalType": "uint256", "name": "amount", "type": "uint256" }], "name": "approve", "outputs": [{ "internalType": "bool", "name": "", "type": "bool" }], "payable": false, "stateMutability": "nonpayable", "type": "function" }, { "constant": true, "inputs": [{ "internalType": "address", "name": "account", "type": "address" }], "name": "balanceOf", "outputs": [{ "internalType": "uint256", "name": "", "type": "uint256" }], "payable": false, "stateMutability": "view", "type": "function" }, { "constant": false, "inputs": [{ "internalType": "uint256", "name": "amount", "type": "uint256" }], "name": "burn", "outputs": [{ "internalType": "bool", "name": "", "type": "bool" }], "payable": false, "stateMutability": "nonpayable", "type": "function" }, { "constant": true, "inputs": [], "name": "decimals", "outputs": [{ "internalType": "uint8", "name": "", "type": "uint8" }], "payable": false, "stateMutability": "view", "type": "function" }, { "constant": false, "inputs": [{ "internalType": "address", "name": "spender", "type": "address" }, { "internalType": "uint256", "name": "subtractedValue", "type": "uint256" }], "name": "decreaseAllowance", "outputs": [{ "internalType": "bool", "name": "", "type": "bool" }], "payable": false, "stateMutability": "nonpayable", "type": "function" }, { "constant": true, "inputs": [], "name": "getOwner", "outputs": [{ "internalType": "address", "name": "", "type": "address" }], "payable": false, "stateMutability": "view", "type": "function" }, { "constant": false, "inputs": [{ "internalType": "address", "name": "spender", "type": "address" }, { "internalType": "uint256", "name": "addedValue", "type": "uint256" }], "name": "increaseAllowance", "outputs": [{ "internalType": "bool", "name": "", "type": "bool" }], "payable": false, "stateMutability": "nonpayable", "type": "function" }, { "constant": false, "inputs": [{ "internalType": "uint256", "name": "amount", "type": "uint256" }], "name": "mint", "outputs": [{ "internalType": "bool", "name": "", "type": "bool" }], "payable": false, "stateMutability": "nonpayable", "type": "function" }, { "constant": true, "inputs": [], "name": "name", "outputs": [{ "internalType": "string", "name": "", "type": "string" }], "payable": false, "stateMutability": "view", "type": "function" }, { "constant": true, "inputs": [], "name": "owner", "outputs": [{ "internalType": "address", "name": "", "type": "address" }], "payable": false, "stateMutability": "view", "type": "function" }, { "constant": false, "inputs": [], "name": "renounceOwnership", "outputs": [], "payable": false, "stateMutability": "nonpayable", "type": "function" }, { "constant": true, "inputs": [], "name": "symbol", "outputs": [{ "internalType": "string", "name": "", "type": "string" }], "payable": false, "stateMutability": "view", "type": "function" }, { "constant": true, "inputs": [], "name": "totalSupply", "outputs": [{ "internalType": "uint256", "name": "", "type": "uint256" }], "payable": false, "stateMutability": "view", "type": "function" }, { "constant": false, "inputs": [{ "internalType": "address", "name": "recipient", "type": "address" }, { "internalType": "uint256", "name": "amount", "type": "uint256" }], "name": "transfer", "outputs": [{ "internalType": "bool", "name": "", "type": "bool" }], "payable": false, "stateMutability": "nonpayable", "type": "function" }, { "constant": false, "inputs": [{ "internalType": "address", "name": "sender", "type": "address" }, { "internalType": "address", "name": "recipient", "type": "address" }, { "internalType": "uint256", "name": "amount", "type": "uint256" }], "name": "transferFrom", "outputs": [{ "internalType": "bool", "name": "", "type": "bool" }], "payable": false, "stateMutability": "nonpayable", "type": "function" }, { "constant": false, "inputs": [{ "internalType": "address", "name": "newOwner", "type": "address" }], "name": "transferOwnership", "outputs": [], "payable": false, "stateMutability": "nonpayable", "type": "function" }];
+            if (!swapTokensButton) {
+                console.error("swap-tokens button not found!");
+                return;
+            }
+
+            console.log("swap-tokens button found.");
+
+            let exchangeRate = 0; // Will be fetched from an API
+
+            if (typeof window.ethereum !== 'undefined') {
+                try {
+                    await window.ethereum.request({ method: 'eth_requestAccounts' });
+                    console.log('MetaMask is connected!');
+                    updateBalances();
+                    fetchExchangeRate();
+                } catch (error) {
+                    alert('Please connect to MetaMask!');
+                    return;
+                }
+            } else {
+                alert('Please install MetaMask!');
+                return;
+            }
+
+            async function fetchExchangeRate() {
+                try {
+                    const response = await fetch('https://api.coingecko.com/api/v3/simple/price?ids=binancecoin,tether&vs_currencies=usd');
+                    const data = await response.json();
+                    const usdtToUsd = data.tether.usd;
+                    const bnbToUsd = data.binancecoin.usd;
+                    exchangeRate = usdtToUsd / bnbToUsd;
+                    console.log(`Exchange rate fetched: 1 USDT = ${exchangeRate} BNB`);
+                } catch (error) {
+                    console.error('Error fetching exchange rate:', error);
+                    showToast('Failed to fetch exchange rate');
+                }
+            }
+
+            async function updateBalances() {
+                const walletAddress = localStorage.getItem('userwalletAddress');
+                if (walletAddress) {
+                    const web3 = new Web3(window.ethereum);
+
+                    const usdtBalance = await getTokenBalance(walletAddress, '0x55d398326f99059ff775485246999027b3197955'); // USDT contract address on BSC
+                    document.getElementById('usdt-balance').innerText = web3.utils.fromWei(usdtBalance, 'mwei'); // USDT has 6 decimals
+
+                    const bnbBalance = await web3.eth.getBalance(walletAddress);
+                    document.getElementById('bnb-balance').innerText = web3.utils.fromWei(bnbBalance, 'ether');
+                } else {
+                    window.location.href = '/';
+                }
+            }
+
+            async function getTokenBalance(address, contractAddress) {
+                const web3 = new Web3(window.ethereum);
+                const contract = new web3.eth.Contract(usdtAbi, contractAddress);
+                return await contract.methods.balanceOf(address).call();
+            }
+
+            function showToast(message) {
+                toast.innerText = message;
+                toast.style.display = 'block';
+                setTimeout(() => {
+                    toast.style.display = 'none';
+                }, 3000);
+            }
+
+            usdtAmount.addEventListener('input', () => {
+                const usdtValue = parseFloat(usdtAmount.value);
+                if (!isNaN(usdtValue) && usdtValue > 0) {
+                    const bnbValue = usdtValue * exchangeRate;
+                    bnbAmount.value = bnbValue.toFixed(6); // Display BNB amount with 6 decimal places
+                } else {
+                    bnbAmount.value = '';
+                }
+            });
+
+            swapTokensButton.addEventListener('click', async () => {
+                const usdtValue = parseFloat(usdtAmount.value);
+                if (isNaN(usdtValue) || usdtValue <= 0) {
+                    showToast('Invalid USDT amount');
+                    return;
+                }
+
+                try {
+                    const web3 = new Web3(window.ethereum);
+                    const walletAddress = localStorage.getItem('userwalletAddress');
+                    const pancakeRouterAddress = '0x10ED43C718714eb63d5aA57B78B54704E256024E'; // PancakeSwap Router address
+                    const usdtAddress = '0x55d398326f99059ff775485246999027b3197955'; // USDT address on BSC
+                    const pancakerouterAbi = [
+                        {
+                            "constant": false,
+                            "inputs": [
+                                {
+                                    "name": "amountIn",
+                                    "type": "uint256"
+                                },
+                                {
+                                    "name": "amountOutMin",
+                                    "type": "uint256"
+                                },
+                                {
+                                    "name": "path",
+                                    "type": "address[]"
+                                },
+                                {
+                                    "name": "to",
+                                    "type": "address"
+                                },
+                                {
+                                    "name": "deadline",
+                                    "type": "uint256"
+                                }
+                            ],
+                            "name": "swapExactTokensForETH",
+                            "outputs": [
+                                {
+                                    "name": "amounts",
+                                    "type": "uint256[]"
+                                }
+                            ],
+                            "payable": false,
+                            "stateMutability": "nonpayable",
+                            "type": "function"
+                        },
+                        {
+                            "constant": false,
+                            "inputs": [
+                                {
+                                    "name": "_spender",
+                                    "type": "address"
+                                },
+                                {
+                                    "name": "_value",
+                                    "type": "uint256"
+                                }
+                            ],
+                            "name": "approve",
+                            "outputs": [
+                                {
+                                    "name": "success",
+                                    "type": "bool"
+                                }
+                            ],
+                            "payable": false,
+                            "stateMutability": "nonpayable",
+                            "type": "function"
+                        }
+                    ];
+
+                    const pancakeRouter = new web3.eth.Contract(pancakerouterAbi, pancakeRouterAddress);
+
+                    const path = [
+                        web3.utils.toChecksumAddress(usdtAddress),
+                        web3.utils.toChecksumAddress('0xbb4cdb9cbd36b01bd1cbaebf2de08d9173bc095c') // WBNB address
+                    ];
+
+                    const amountIn = web3.utils.toWei(usdtValue.toString(), 'mwei'); // USDT has 6 decimals
+                    const amountOutMin = web3.utils.toWei((usdtValue * exchangeRate * 0.95).toFixed(6), 'ether'); // Minimum amount of BNB expected (with 5% slippage)
+
+                    const gasPrice = await web3.eth.getGasPrice();
+                    const gasLimit = 300000000; // Adjusted gas limit
+
+                    console.log(`Gas Price: ${gasPrice}`);
+                    console.log(`Gas Limit: ${gasLimit}`);
+                    console.log(`USDT Value: ${usdtValue}`);
+                    console.log(`Amount In: ${amountIn}`);
+                    console.log(`Amount Out Min: ${amountOutMin}`);
+
+                    const allowance = await getAllowance(walletAddress, usdtAddress, pancakeRouterAddress);
+                    if (BigInt(allowance) < BigInt(amountIn)) {
+                        await approveTokens(walletAddress, usdtAddress, pancakeRouterAddress, amountIn);
+                    }
+
+                    const txData = pancakeRouter.methods.swapExactTokensForETH(
+                        amountIn,
+                        amountOutMin,
+                        path,
+                        walletAddress,
+                        Math.floor(Date.now() / 1000) + 60 * 10 // 10 minutes from now
+                    ).encodeABI();
+
+                    const txParams = {
+                        from: walletAddress,
+                        to: pancakeRouterAddress,
+                        gasPrice: web3.utils.toHex(gasPrice),
+                        gas: web3.utils.toHex(gasLimit),
+                        data: txData
+                    };
+
+                    console.log("Transaction Parameters:", txParams);
+
+                    const receipt = await web3.eth.sendTransaction(txParams);
+                    showToast('Swap successful!');
+                    console.log('Transaction Receipt:', receipt);
+                    updateBalances();
+
+                } catch (error) {
+                    console.error('Swap failed:', error);
+                    if (error.message.includes('Internal JSON-RPC error')) {
+                        showToast('Internal error: Ensure you have enough funds and try again.');
+                    } else {
+                        showToast(`Swap failed: ${error.message}`);
+                    }
+                }
+            });
+
+            async function getAllowance(owner, tokenAddress, spender) {
+                const web3 = new Web3(window.ethereum);
+                const contract = new web3.eth.Contract(usdtAbi, tokenAddress);
+                return await contract.methods.allowance(owner, spender).call();
+            }
+
+            async function approveTokens(owner, tokenAddress, spender, amount) {
+                const web3 = new Web3(window.ethereum);
+                const contract = new web3.eth.Contract(usdtAbi, tokenAddress);
+
+                const gasPrice = await web3.eth.getGasPrice();
+                const gasLimit = 300000000; // Adjusted gas limit
+
+                const txData = contract.methods.approve(spender, amount).encodeABI();
+                const txParams = {
+                    from: owner,
+                    to: tokenAddress,
+                    gasPrice: web3.utils.toHex(gasPrice),
+                    gas: web3.utils.toHex(gasLimit),
+                    data: txData
+                };
+
+                console.log("Approval Transaction Parameters:", txParams);
+
+                const receipt = await web3.eth.sendTransaction(txParams);
+                console.log('Approval Receipt:', receipt);
+                showToast('Tokens approved for swapping!');
+            }
+
+        });
+    </script>
+</body>
+
+</html>

@@ -1,0 +1,272 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Swap</title>
+    <link rel="stylesheet" href="/css/swap.css">
+    <script src="https://cdn.jsdelivr.net/npm/web3/dist/web3.min.js"></script>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/toastify-js/src/toastify.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/toastify-js"></script>
+
+    <style>
+        .toastify {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            z-index: 9999;
+        }
+    </style>
+
+</head>
+
+<body>
+    <div class="container">
+        <h1>Swap</h1>
+        <p>Trade tokens in an instant</p>
+        <div class="swap-box">
+            <div class="token-box">
+                <span class="token-symbol">USDT</span>
+                <input type="number" id="usdt-amount" placeholder="0.0" step="any" oninput="updateTRNAmount()">
+                <div class="balance">Balance: <span id="usdt-balance">0.0</span> USDT</div>
+            </div>
+            <button id="swap-tokens" onclick="swapTokens()">Swap</button>
+            <div class="token-box">
+                <span class="token-symbol">TRN</span>
+                <input type="number" id="trn-amount" placeholder="0.0" disabled>
+                <div class="balance">Balance: <span id="trn-balance">0.0</span> TRN</div>
+                <div id="conversion-rate">1 USDT = <span id="trn-rate">0.0</span> TRN</div>
+            </div>
+            <button type="button" onclick="logout()">Logout</button>
+        </div>
+    </div>
+
+    <script>
+        let web3;
+        let userAccount;
+
+        function showToast(message, type, duration = 3000) {
+            Toastify({
+                text: message,
+                duration: duration,
+                close: true,
+                gravity: 'top',
+                backgroundColor: type === 'error' ? '#ff6347' : '#32CD32',
+            }).showToast();
+        }
+
+        const usdtAddress = '0x55d398326f99059fF775485246999027B3197955';
+        const pancakeSwapRouterAddress = '0x10ED43C718714eb63d5aA57B78B54704E256024E';
+        const trnAddress = '0x665066127C7aC5C4765dA5a35B2e7dad66cf975d';
+
+        const usdtAbi = [{ "inputs": [], "payable": false, "stateMutability": "nonpayable", "type": "constructor" }, { "anonymous": false, "inputs": [{ "indexed": true, "internalType": "address", "name": "owner", "type": "address" }, { "indexed": true, "internalType": "address", "name": "spender", "type": "address" }, { "indexed": false, "internalType": "uint256", "name": "value", "type": "uint256" }], "name": "Approval", "type": "event" }, { "anonymous": false, "inputs": [{ "indexed": true, "internalType": "address", "name": "previousOwner", "type": "address" }, { "indexed": true, "internalType": "address", "name": "newOwner", "type": "address" }], "name": "OwnershipTransferred", "type": "event" }, { "anonymous": false, "inputs": [{ "indexed": true, "internalType": "address", "name": "from", "type": "address" }, { "indexed": true, "internalType": "address", "name": "to", "type": "address" }, { "indexed": false, "internalType": "uint256", "name": "value", "type": "uint256" }], "name": "Transfer", "type": "event" }, { "constant": true, "inputs": [], "name": "_decimals", "outputs": [{ "internalType": "uint8", "name": "", "type": "uint8" }], "payable": false, "stateMutability": "view", "type": "function" }, { "constant": true, "inputs": [], "name": "_name", "outputs": [{ "internalType": "string", "name": "", "type": "string" }], "payable": false, "stateMutability": "view", "type": "function" }, { "constant": true, "inputs": [], "name": "_symbol", "outputs": [{ "internalType": "string", "name": "", "type": "string" }], "payable": false, "stateMutability": "view", "type": "function" }, { "constant": true, "inputs": [{ "internalType": "address", "name": "owner", "type": "address" }, { "internalType": "address", "name": "spender", "type": "address" }], "name": "allowance", "outputs": [{ "internalType": "uint256", "name": "", "type": "uint256" }], "payable": false, "stateMutability": "view", "type": "function" }, { "constant": false, "inputs": [{ "internalType": "address", "name": "spender", "type": "address" }, { "internalType": "uint256", "name": "amount", "type": "uint256" }], "name": "approve", "outputs": [{ "internalType": "bool", "name": "", "type": "bool" }], "payable": false, "stateMutability": "nonpayable", "type": "function" }, { "constant": true, "inputs": [{ "internalType": "address", "name": "account", "type": "address" }], "name": "balanceOf", "outputs": [{ "internalType": "uint256", "name": "", "type": "uint256" }], "payable": false, "stateMutability": "view", "type": "function" }, { "constant": false, "inputs": [{ "internalType": "uint256", "name": "amount", "type": "uint256" }], "name": "burn", "outputs": [{ "internalType": "bool", "name": "", "type": "bool" }], "payable": false, "stateMutability": "nonpayable", "type": "function" }, { "constant": true, "inputs": [], "name": "decimals", "outputs": [{ "internalType": "uint8", "name": "", "type": "uint8" }], "payable": false, "stateMutability": "view", "type": "function" }, { "constant": false, "inputs": [{ "internalType": "address", "name": "spender", "type": "address" }, { "internalType": "uint256", "name": "subtractedValue", "type": "uint256" }], "name": "decreaseAllowance", "outputs": [{ "internalType": "bool", "name": "", "type": "bool" }], "payable": false, "stateMutability": "nonpayable", "type": "function" }, { "constant": true, "inputs": [], "name": "getOwner", "outputs": [{ "internalType": "address", "name": "", "type": "address" }], "payable": false, "stateMutability": "view", "type": "function" }, { "constant": false, "inputs": [{ "internalType": "address", "name": "spender", "type": "address" }, { "internalType": "uint256", "name": "addedValue", "type": "uint256" }], "name": "increaseAllowance", "outputs": [{ "internalType": "bool", "name": "", "type": "bool" }], "payable": false, "stateMutability": "nonpayable", "type": "function" }, { "constant": false, "inputs": [{ "internalType": "uint256", "name": "amount", "type": "uint256" }], "name": "mint", "outputs": [{ "internalType": "bool", "name": "", "type": "bool" }], "payable": false, "stateMutability": "nonpayable", "type": "function" }, { "constant": true, "inputs": [], "name": "name", "outputs": [{ "internalType": "string", "name": "", "type": "string" }], "payable": false, "stateMutability": "view", "type": "function" }, { "constant": true, "inputs": [], "name": "owner", "outputs": [{ "internalType": "address", "name": "", "type": "address" }], "payable": false, "stateMutability": "view", "type": "function" }, { "constant": false, "inputs": [], "name": "renounceOwnership", "outputs": [], "payable": false, "stateMutability": "nonpayable", "type": "function" }, { "constant": true, "inputs": [], "name": "symbol", "outputs": [{ "internalType": "string", "name": "", "type": "string" }], "payable": false, "stateMutability": "view", "type": "function" }, { "constant": true, "inputs": [], "name": "totalSupply", "outputs": [{ "internalType": "uint256", "name": "", "type": "uint256" }], "payable": false, "stateMutability": "view", "type": "function" }, { "constant": false, "inputs": [{ "internalType": "address", "name": "recipient", "type": "address" }, { "internalType": "uint256", "name": "amount", "type": "uint256" }], "name": "transfer", "outputs": [{ "internalType": "bool", "name": "", "type": "bool" }], "payable": false, "stateMutability": "nonpayable", "type": "function" }, { "constant": false, "inputs": [{ "internalType": "address", "name": "sender", "type": "address" }, { "internalType": "address", "name": "recipient", "type": "address" }, { "internalType": "uint256", "name": "amount", "type": "uint256" }], "name": "transferFrom", "outputs": [{ "internalType": "bool", "name": "", "type": "bool" }], "payable": false, "stateMutability": "nonpayable", "type": "function" }, { "constant": false, "inputs": [{ "internalType": "address", "name": "newOwner", "type": "address" }], "name": "transferOwnership", "outputs": [], "payable": false, "stateMutability": "nonpayable", "type": "function" }];
+        const pancakeSwapRouterAbi = [
+            {
+                "constant": false,
+                "inputs": [
+                    {
+                        "name": "amountIn",
+                        "type": "uint256"
+                    },
+                    {
+                        "name": "amountOutMin",
+                        "type": "uint256"
+                    },
+                    {
+                        "name": "path",
+                        "type": "address[]"
+                    },
+                    {
+                        "name": "to",
+                        "type": "address"
+                    },
+                    {
+                        "name": "deadline",
+                        "type": "uint256"
+                    }
+                ],
+                "name": "swapExactTokensForTokens",
+                "outputs": [
+                    {
+                        "name": "amounts",
+                        "type": "uint256[]"
+                    }
+                ],
+                "payable": false,
+                "stateMutability": "nonpayable",
+                "type": "function"
+            },
+            {
+                "constant": false,
+                "inputs": [
+                    {
+                        "name": "_spender",
+                        "type": "address"
+                    },
+                    {
+                        "name": "_value",
+                        "type": "uint256"
+                    }
+                ],
+                "name": "approve",
+                "outputs": [
+                    {
+                        "name": "success",
+                        "type": "bool"
+                    }
+                ],
+                "payable": false,
+                "stateMutability": "nonpayable",
+                "type": "function"
+            },
+            {
+                "constant": true,
+                "inputs": [
+                    { "name": "amountIn", "type": "uint256" },
+                    { "name": "path", "type": "address[]" }
+                ],
+                "name": "getAmountsOut",
+                "outputs": [
+                    { "name": "amounts", "type": "uint256[]" }
+                ],
+                "payable": false,
+                "stateMutability": "view",
+                "type": "function"
+            }
+        ];
+
+        async function connectWallet() {
+            if (window.ethereum) {
+                web3 = new Web3(window.ethereum);
+                try {
+                    await window.ethereum.request({ method: 'eth_requestAccounts' });
+                    userAccount = (await web3.eth.getAccounts())[0];
+                    document.getElementById('usdt-balance').innerText = await getTokenBalance(usdtAddress);
+                    document.getElementById('trn-balance').innerText = await getTokenBalance(trnAddress);
+                    await updateTRNRate();
+                    showToast('Wallet connected successfully!', 'success', 5000);
+                } catch (error) {
+                    console.error(error);
+                    showToast('Failed to connect to wallet. Please try again.', 'error', 5000);
+                }
+            } else {
+                alert('Please install MetaMask!');
+            }
+        }
+
+        async function getTokenBalance(tokenAddress) {
+            const tokenContract = new web3.eth.Contract(usdtAbi, tokenAddress);
+            const balance = await tokenContract.methods.balanceOf(userAccount).call();
+            return web3.utils.fromWei(balance, 'ether');
+        }
+
+        async function updateTRNRate() {
+            const amountIn = web3.utils.toWei('1', 'ether');
+            const path = [usdtAddress, trnAddress];
+            const router = new web3.eth.Contract(pancakeSwapRouterAbi, pancakeSwapRouterAddress);
+            const amountsOut = await router.methods.getAmountsOut(amountIn, path).call();
+            const trnRate = web3.utils.fromWei(amountsOut[1], 'ether');
+            document.getElementById('trn-rate').innerText = trnRate;
+        }
+
+        async function updateTRNAmount() {
+            const usdtAmount = document.getElementById('usdt-amount').value;
+            if (!usdtAmount) {
+                document.getElementById('trn-amount').value = '0.0';
+                return;
+            }
+            const amountIn = web3.utils.toWei(usdtAmount, 'ether');
+            const path = [usdtAddress, trnAddress];
+            const router = new web3.eth.Contract(pancakeSwapRouterAbi, pancakeSwapRouterAddress);
+            const amountsOut = await router.methods.getAmountsOut(amountIn, path).call();
+            const trnAmount = web3.utils.fromWei(amountsOut[1], 'ether');
+            document.getElementById('trn-amount').value = trnAmount;
+        }
+
+        async function approveTokens() {
+            const usdtAmount = document.getElementById('usdt-amount').value;
+            if (!usdtAmount) {
+                console.error('Please enter a valid USDT amount.');
+                showToast('Please enter a valid USDT amount.', 'error', 5000);
+                return;
+            }
+
+            const amount = web3.utils.toWei(usdtAmount.toString(), 'ether');
+            const tokenContract = new web3.eth.Contract(usdtAbi, usdtAddress);
+
+            try {
+                await tokenContract.methods.approve(pancakeSwapRouterAddress, amount).send({ from: userAccount });
+                showToast(`Approved ${usdtAmount} USDT for swapping.`, 'success', 5000);
+            } catch (error) {
+                console.error('Error approving tokens:', error);
+                showToast('Error approving tokens. Please try again.', 'error', 5000);
+            }
+        }
+
+        async function swapTokens() {
+            await approveTokens();
+
+            const amountIn = web3.utils.toWei(document.getElementById('usdt-amount').value, 'ether');
+            const amountOutMin = 0; // Accept any amount of TRN
+            const path = [usdtAddress, trnAddress];
+            const to = userAccount;
+            const deadline = Math.floor(Date.now() / 1000) + 60 * 20; // 20 minutes from the current Unix time
+
+            const router = new web3.eth.Contract(pancakeSwapRouterAbi, pancakeSwapRouterAddress);
+            try {
+                await router.methods.swapExactTokensForTokens(
+                    amountIn,
+                    amountOutMin,
+                    path,
+                    to,
+                    deadline
+                ).send({ from: userAccount });
+
+                showToast('Tokens swapped successfully!', 'success', 5000);
+
+                // Prepare data to be sent to the backend
+                const swapData = {
+                    useraccount: userAccount,
+                    amountIn: document.getElementById('usdt-amount').value,
+                    amountOut: amountOutMin,
+                    path: path,
+                    to: to,
+                    deadline: deadline,
+                };
+
+                // Send data to the backend
+                await fetch('/api/swap', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify(swapData),
+                });
+
+                document.getElementById('usdt-balance').innerText = await getTokenBalance(usdtAddress);
+                document.getElementById('trn-balance').innerText = await getTokenBalance(trnAddress);
+            } catch (error) {
+                console.error('Error swapping tokens:', error);
+                showToast('Error swapping tokens. Please try again.', 'error', 5000);
+            }
+        }
+
+        function logout() {
+            web3 = null;
+            userAccount = null;
+            document.getElementById('usdt-balance').innerText = '0.0';
+            document.getElementById('trn-balance').innerText = '0.0';
+            document.getElementById('usdt-amount').value = '';
+            document.getElementById('trn-amount').value = '';
+            window.location.href = '/';
+            showToast('Logged out successfully!', 'success', 5000);
+        }
+
+        window.onload = async () => {
+            await connectWallet();
+        };
+    </script>
+</body>
+
+</html>

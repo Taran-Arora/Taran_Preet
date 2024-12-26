@@ -1,0 +1,123 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+	<meta charset="UTF-8">
+	<meta name="viewport" content="width=device-width, initial-scale=1.0">
+	<title>Token Staking</title>
+	<link rel="stylesheet" href="/css/stake.css">
+</head>
+
+<body>
+	<div class="container">
+		<h1>Token Staking DApp</h1>
+		<div class="form-group">
+			<label for="stakeAmount">Stake Amount:</label>
+			<input type="number" id="stakeAmount" placeholder="Enter amount to stake">
+			<button onclick="stakeTokens()">Stake</button>
+		</div>
+		<div class="form-group">
+			<label for="unstakeAmount">Unstake Amount:</label>
+			<input type="number" id="unstakeAmount" placeholder="Enter amount to unstake">
+			<button onclick="unstakeTokens()">Unstake</button>
+		</div>
+		<div class="form-group">
+			<button onclick="claimRewards()">Claim Rewards</button>
+		</div>
+		<div id="status"></div>
+	</div>
+	<script src="https://cdn.jsdelivr.net/npm/web3/dist/web3.min.js"></script>
+	<script>
+
+		const stakingContractAddress = '0xYourStakingContractAddress';
+		const stakingAbi = [
+			// Your staking contract ABI here
+		];
+
+		const stakeTokenAddress = '0xYourStakeTokenAddress';
+		const stakeTokenAbi = [
+			// Your stake token contract ABI here
+		];
+
+		const rewardTokenAddress = '0xYourRewardTokenAddress';
+		const rewardTokenAbi = [
+			// Your reward token contract ABI here
+		];
+
+		let web3;
+		let stakingContract;
+		let stakeTokenContract;
+		let rewardTokenContract;
+		let userAccount;
+
+		async function loadWeb3() {
+			if (window.ethereum) {
+				web3 = new Web3(window.ethereum);
+				await window.ethereum.enable();
+			} else if (window.web3) {
+				web3 = new Web3(window.web3.currentProvider);
+			} else {
+				alert('Non-Ethereum browser detected. You should consider trying MetaMask!');
+			}
+		}
+
+		async function loadContracts() {
+			stakingContract = new web3.eth.Contract(stakingAbi, stakingContractAddress);
+			stakeTokenContract = new web3.eth.Contract(stakeTokenAbi, stakeTokenAddress);
+			rewardTokenContract = new web3.eth.Contract(rewardTokenAbi, rewardTokenAddress);
+			const accounts = await web3.eth.getAccounts();
+			userAccount = accounts[0];
+		}
+
+		async function stakeTokens() {
+			const amount = document.getElementById('stakeAmount').value;
+			if (amount <= 0) {
+				alert('Please enter a valid amount.');
+				return;
+			}
+
+			try {
+				await stakeTokenContract.methods.approve(stakingContractAddress, web3.utils.toWei(amount, 'ether')).send({ from: userAccount });
+				await stakingContract.methods.stake(web3.utils.toWei(amount, 'ether')).send({ from: userAccount });
+				document.getElementById('status').innerText = 'Tokens staked successfully!';
+			} catch (error) {
+				document.getElementById('status').innerText = 'Error staking tokens.';
+				console.error(error);
+			}
+		}
+
+		async function unstakeTokens() {
+			const amount = document.getElementById('unstakeAmount').value;
+			if (amount <= 0) {
+				alert('Please enter a valid amount.');
+				return;
+			}
+
+			try {
+				await stakingContract.methods.unstake(web3.utils.toWei(amount, 'ether')).send({ from: userAccount });
+				document.getElementById('status').innerText = 'Tokens unstaked successfully!';
+			} catch (error) {
+				document.getElementById('status').innerText = 'Error unstaking tokens.';
+				console.error(error);
+			}
+		}
+
+		async function claimRewards() {
+			try {
+				await stakingContract.methods.claimReward().send({ from: userAccount });
+				document.getElementById('status').innerText = 'Rewards claimed successfully!';
+			} catch (error) {
+				document.getElementById('status').innerText = 'Error claiming rewards.';
+				console.error(error);
+			}
+		}
+
+		window.onload = async () => {
+			await loadWeb3();
+			await loadContracts();
+		};
+
+	</script>
+</body>
+
+</html>

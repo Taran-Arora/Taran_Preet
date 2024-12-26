@@ -1,0 +1,67 @@
+    .main-form{
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    width: 100%;
+    padding: 50px 0px 50px;
+}
+.form{
+    padding: 20px;
+    border: 1px solid black;
+    width: 400px;
+    border-radius: 7px;
+}
+.heading h1{
+    font-size: 20px;
+    margin: 0;
+    text-align: center;
+    margin-bottom: 22px;
+}
+.select-op{
+    width: 100%;
+    padding: 8px;
+    outline: none;
+}
+.account-field{
+ margin: 15px 0 15px 0;
+ width: 100%;
+ border: 1px solid #767676;
+ padding: 6px;
+ border-radius: 3px;
+ outline: none;
+}
+.account-field::placeholder{
+    color: #000;
+}
+.amount-field{
+    width: 100%;
+    padding: 6px;
+    border-radius: 3px;
+    outline: none;
+    border: 1px solid #767676;
+
+}
+.amount-field::placeholder{
+    color: #000;
+}
+.send-token button{
+    border: none;
+    background: green;
+    color: white;
+    border-radius: 4px;
+    padding: 5px;
+    border: 1px solid green;
+    transition: all 0.5s linear; 
+    width: 100%;
+  
+}
+.send-token{
+  
+    margin-top: 15px;
+  
+}
+.send-token button:hover{
+  background:none;
+  border: 1px solid green;
+  color: green;
+}
